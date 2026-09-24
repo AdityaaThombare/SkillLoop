@@ -1,0 +1,16 @@
+{% extends 'base.html' %}{% block title %}Leaderboard · SkillLoop{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Trust leaderboard</h1><p>Built from the ratings members give each other after a trade. Recent ratings count more than old ones, and everyone starts at 5.00.</p></div></div>
+<div class="podium" id="podium"></div>
+<div class="card" style="padding:8px 12px;overflow:auto"><table><thead><tr><th>Rank</th><th>Member</th><th>Trust</th><th>Ratings</th><th>Credits</th></tr></thead><tbody id="rows"></tbody></table></div>
+{% endblock %}
+{% block scripts %}<script>
+async function refresh() {
+  const u = await api('/api/leaderboard'), order = [u[1], u[0], u[2]].filter(Boolean);
+  $('#podium').innerHTML = order.map(x => `<div class="card ${u[0] === x ? 'p1' : ''}"><div class="avatar" style="margin:0 auto 10px;background:${COLORS[u.indexOf(x) % 5]}">${initial(x.name)}</div>
+    <h3>${esc(x.name)}</h3><div class="big">${x.trust_score.toFixed(2)}</div><div class="muted small">rank ${x.rank}</div></div>`).join('');
+  $('#rows').innerHTML = u.map(x => `<tr class="${x.id === ME.id ? 'me' : ''}"><td>${x.rank}</td><td>${esc(x.name)} ${x.id === ME.id ? '<span class="chip violet">You</span>' : ''} ${x.no_show_count ? `<span class="chip rose">${x.no_show_count} no-show</span>` : ''}</td>
+    <td>${x.trust_score.toFixed(2)}</td><td>${x.rating_count}</td><td>${x.credits.toFixed(2)}</td></tr>`).join('');
+}
+refresh();
+</script>{% endblock %}

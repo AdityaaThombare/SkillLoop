@@ -1,0 +1,40 @@
+{% extends 'base.html' %}{% block title %}Hackathon teams · SkillLoop{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Hackathon teams</h1><p>Open teams, ranked by how well your skills fill what they're missing. New teams and join requests show up here live. <span id="modelNote"></span></p></div>
+  <button class="btn" onclick="openModal()"><svg class="ico"><use href="#i-plus"/></svg>Start a team</button></div>
+<div class="tabs" style="margin-bottom:22px"><button class="on" id="t1">Open teams</button><button id="t2">My teams</button></div>
+<div class="grid g2" id="list"></div>
+<div class="modal" id="modal"><div class="card"><h2>Start a team</h2>
+  <label for="tn">Team name</label><input id="tn" placeholder="Campus Crew">
+  <label for="th">Hackathon</label><input id="th" placeholder="Smart India Hackathon">
+  <label for="td">What are you building?</label><textarea id="td" rows="2" placeholder="One or two sentences"></textarea>
+  <label for="ts">Team size (including you)</label><input id="ts" type="number" min="2" max="12" value="4">
+  <label>Skills you still need</label><div class="skillpick" id="pick"></div>
+  <div class="row" style="margin-top:22px"><button class="btn" onclick="create()">Create team</button><button class="btn ghost" onclick="$('#modal').classList.remove('open')">Cancel</button></div></div></div>
+{% endblock %}
+{% block scripts %}<script>
+let TEAMS = [], tab = 1;
+async function refresh() {
+  const [t, info] = await Promise.all([api('/api/teams'), api('/api/model-info')]); TEAMS = t; render();
+  $('#modelNote').textContent = info.synthetic_prior
+    ? `Match scores come from a matrix factorization model. It has learned from ${info.real_positives} real join request${info.real_positives === 1 ? '' : 's'} so far and uses synthetic warm-start data until it has ${info.real_only_after}.`
+    : `Match scores come from a matrix factorization model trained on ${info.real_positives} real join requests.`;
+}
+function render() {
+  $('#t1').classList.toggle('on', tab === 1); $('#t2').classList.toggle('on', tab === 2);
+  const list = tab === 1 ? TEAMS.filter(t => !t.my_status).sort((a, b) => (a.is_full - b.is_full) || b.match - a.match) : TEAMS.filter(t => t.my_status);
+  $('#list').innerHTML = list.map(teamCard).join('') || `<div class="empty">${tab === 1 ? 'No open teams yet. Start the first one.' : 'You haven\'t joined or created a team yet.'}</div>`;
+}
+$('#t1').onclick = () => { tab = 1; render(); }; $('#t2').onclick = () => { tab = 2; render(); };
+async function openModal() {
+  const skills = await api('/api/skills');
+  $('#pick').innerHTML = skills.map(s => `<label><input type="checkbox" value="${s.skill_id}"><span>${esc(s.name)}</span></label>`).join('');
+  $('#modal').classList.add('open');
+}
+async function create() {
+  const needs = [...document.querySelectorAll('#pick input:checked')].map(i => +i.value);
+  await api('/api/teams', 'POST', { name: $('#tn').value, hackathon: $('#th').value, description: $('#td').value, max_size: $('#ts').value, needs });
+  $('#modal').classList.remove('open'); toast('Team created. Everyone can see it now.'); tab = 2; await refresh();
+}
+refresh();
+</script>{% endblock %}

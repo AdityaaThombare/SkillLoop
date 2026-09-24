@@ -1,0 +1,26 @@
+{% extends 'base.html' %}{% block title %}Skills · SkillLoop{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Skills</h1><p>Prices move with demand and supply as members add what they teach and want.</p></div>
+  <button class="btn" onclick="$('#skillModal').classList.add('open')"><svg class="ico"><use href="#i-plus"/></svg>Add a skill</button></div>
+<div class="grid g3" id="skills"></div>
+<div class="modal" id="skillModal"><div class="card"><h2>Add a skill</h2>
+  <label for="sn">Skill name</label><input id="sn" placeholder="Cooking"><label for="sc">Category</label><input id="sc" placeholder="Lifestyle">
+  <div class="row" style="margin-top:20px"><button class="btn" onclick="addSkill()">Add skill</button><button class="btn ghost" onclick="$('#skillModal').classList.remove('open')">Cancel</button></div></div></div>
+{% endblock %}
+{% block scripts %}<script>
+async function refresh() {
+  const off = new Set(ME.offers.map(s => s.id)), wnt = new Set(ME.wants.map(s => s.id)), skills = await api('/api/skills');
+  $('#skills').innerHTML = skills.map(s => { const t = (s.demand + s.supply) || 1;
+    return `<div class="card skill-card"><span class="chip violet">${esc(s.category || 'General')}</span><h3 style="margin-top:12px">${esc(s.name)}</h3>
+    <div class="price">${s.price_per_hour.toFixed(2)} <small>credits / hour</small></div>
+    <div class="dsbar" title="${s.demand} want it, ${s.supply} teach it"><i style="width:${s.demand / t * 100}%"></i><i style="width:${s.supply / t * 100}%"></i></div>
+    <div class="muted small" style="margin-bottom:14px">${s.demand} want it &middot; ${s.supply} teach it</div>
+    <div class="row">${off.has(s.skill_id) ? '<span class="chip mint">You teach this</span>' : `<button class="btn small mint" onclick="addList('offer',${s.skill_id})">I can teach</button>`}
+    ${wnt.has(s.skill_id) ? '<span class="chip amber">You want this</span>' : `<button class="btn small ghost" onclick="addList('want',${s.skill_id})">I want to learn</button>`}</div></div>`; }).join('');
+}
+async function addSkill() {
+  await api('/api/skills', 'POST', { name: $('#sn').value, category: $('#sc').value });
+  $('#skillModal').classList.remove('open'); $('#sn').value = ''; $('#sc').value = ''; toast('Skill added'); await refresh();
+}
+refresh();
+</script>{% endblock %}

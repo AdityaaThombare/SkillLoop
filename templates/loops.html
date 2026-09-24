@@ -1,0 +1,24 @@
+{% extends 'base.html' %}{% block title %}Trade loops · SkillLoop{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Trade loops</h1><p>Closed circles where everyone teaches one skill and learns one. They are found live by a recursive SQL query and update as members change their skills. You can settle any loop you're in.</p></div></div>
+<div class="grid" id="loops"></div>
+{% endblock %}
+{% block scripts %}<script>
+let LOOPS = [];
+async function refresh() {
+  LOOPS = await api('/api/loops');
+  $('#loops').innerHTML = LOOPS.map((l, i) => `<article class="card loop-item"><div id="r${i}"></div><div>
+    <div class="row"><span class="chip amber">${l.length}-way loop</span>${l.includes_me ? '<span class="chip violet">You\'re in this one</span>' : ''}<span class="muted small">trust ${l.avg_trust} &middot; worth ${l.total_value} credits</span></div>
+    <div style="margin:12px 0">${l.legs.map(g => `<div class="leg"><b>${esc(g.giver_name)}</b> <span class="muted">teaches</span> <b>${esc(g.receiver_name)}</b> <span class="chip">${esc(g.skill_name)}</span><span class="muted small" style="margin-left:auto">${g.price_per_hour.toFixed(2)} cr</span></div>`).join('')}</div>
+    <button class="btn mint" id="b${i}" ${l.includes_me ? '' : 'disabled title="Only people in a loop can settle it"'} onclick="run(${i})">Settle this loop</button></div></article>`).join('')
+    || '<div class="empty">No loops right now. One appears here the moment members\' offers and wants form a circle. Add yours on the Skills page.</div>';
+  LOOPS.forEach((l, i) => ring($('#r' + i), l.users));
+}
+async function run(i) {
+  $('#b' + i).disabled = true;
+  try { const r = await api('/api/trade/execute', 'POST', { legs: LOOPS[i].legs });
+    settle($('#r' + i)); toast(`Trade #${r.trade_id} settled. Rate your partners on your profile.`); await syncMe();
+  } catch (e) { $('#b' + i).disabled = false; }
+}
+refresh();
+</script>{% endblock %}

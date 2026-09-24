@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="en"><head><title>{% block title %}SkillLoop{% endblock %}</title>{% include '_head.html' %}</head>
+<body><div class="shell">
+<aside class="side">
+  <a class="brand" href="/"><svg class="mark" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="url(#lg)" stroke-width="4" stroke-dasharray="52 17" stroke-linecap="round"/></svg>SkillLoop</a>
+  <nav class="nav">
+    {% for href, key, ic, label in [('/', 'dashboard', 'home', 'Home'), ('/network', 'network', 'graph', 'Network'), ('/loops', 'loops', 'loop', 'Trade loops'), ('/marketplace', 'marketplace', 'market', 'Skills'), ('/teams', 'teams', 'team', 'Hackathon teams'), ('/leaderboard', 'leaderboard', 'trophy', 'Leaderboard'), ('/profile', 'profile', 'user', 'Profile')] %}
+    <a href="{{ href }}" class="{{ 'on' if active == key }}"><svg class="ico"><use href="#i-{{ ic }}"/></svg><span>{{ label }}</span>{% if key == 'teams' %}<span class="count" id="teamBadge" hidden>0</span>{% endif %}</a>
+    {% endfor %}
+  </nav>
+  <div class="live" id="live"><i></i><span>Live</span></div>
+  <div class="me-card">
+    <div class="who"><div class="avatar">{{ me.name[0]|upper }}</div><div><b>{{ me.name }}</b><div class="muted small" id="meRank">Rank #{{ me.rank }}</div></div></div>
+    <div class="credits" id="meCredits">{{ '%.2f'|format(me.credits) }}</div><div class="muted small">time credits</div>
+    <button class="btn ghost small" onclick="logout()"><svg class="ico"><use href="#i-logout"/></svg>Sign out</button>
+  </div>
+</aside>
+<main>{% block content %}{% endblock %}</main>
+</div>
+<button class="fab" id="botFab" aria-label="Open assistant"><svg class="ico"><use href="#i-chat"/></svg></button>
+<div class="botbox" id="botBox"><header>Quick commands</header>
+  <div id="botLog"><div class="bm">Type a command like "I want Guitar Lessons", "find loops", or "help".</div></div>
+  <form id="botForm"><input id="botInput" placeholder="I offer Photography" autocomplete="off"><button class="btn small">Send</button></form></div>
+<div class="toast" id="toast" role="status"></div>
+<script>const ME = {{ me|tojson }};</script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body></html>

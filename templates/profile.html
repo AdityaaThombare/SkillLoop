@@ -1,0 +1,35 @@
+{% extends 'base.html' %}{% block title %}Profile · SkillLoop{% endblock %}
+{% block content %}
+<div class="page-head"><div class="row" style="gap:18px"><div class="avatar" style="width:64px;height:64px;font-size:28px">{{ me.name[0]|upper }}</div>
+  <div><h1>{{ me.name }}</h1><p style="margin-top:4px">{{ me.email }}</p></div></div></div>
+<div class="grid g3">
+  <div class="card"><div class="muted small">Time credits</div><div style="font:700 34px var(--display)" id="pCredits">{{ '%.2f'|format(me.credits) }}</div></div>
+  <div class="card"><div class="muted small">Trust score</div><div style="font:700 34px var(--display)" id="pTrust">{{ '%.2f'|format(me.trust_score) }}</div></div>
+  <div class="card"><div class="muted small">Leaderboard rank</div><div style="font:700 34px var(--display)" id="pRank">#{{ me.rank }}</div></div>
+</div>
+<section class="section grid g2">
+  <div class="card"><h3>What you can teach</h3><div class="row" id="offers" style="margin:14px 0"></div><div class="row"><select id="so" style="flex:1" aria-label="Skill you can teach"></select><button class="btn small mint" onclick="add('offer','so')">Add</button></div></div>
+  <div class="card"><h3>What you want to learn</h3><div class="row" id="wants" style="margin:14px 0"></div><div class="row"><select id="sw" style="flex:1" aria-label="Skill you want to learn"></select><button class="btn small" onclick="add('want','sw')">Add</button></div></div>
+</section>
+<section class="section"><div class="head"><h2>Your trades</h2><span class="muted small">Rate the people you traded with. Their trust score is built from these ratings.</span></div><div class="card" id="trades"></div></section>
+<section class="section"><div class="head"><h2>Your teams</h2></div><div class="grid g2" id="teams"></div></section>
+{% endblock %}
+{% block scripts %}<script>
+const chips = (arr, kind, cls) => arr.map(s => `<span class="chip ${cls}">${esc(s.name)}<button aria-label="Remove ${esc(s.name)}" onclick="rm('${kind}',${s.id})">&times;</button></span>`).join('') || '<span class="muted small">Nothing yet</span>';
+async function rm(kind, id) { await api(`/api/${kind}/${id}`, 'DELETE'); await syncAndRefresh(); }
+async function add(kind, sel) { const id = +$('#' + sel).value; if (id) await addList(kind, id); }
+async function rate(tid, uid, score) { await api(`/api/trade/${tid}/rate`, 'POST', { to_user_id: uid, score }); toast('Rating saved'); await syncAndRefresh(); }
+const stars = (tid, uid, r) => `<span class="stars ${r ? 'done' : ''}" role="group" aria-label="${r ? 'You rated ' + r + ' out of 5' : 'Rate this person'}">${[5, 4, 3, 2, 1].map(n =>
+  `<button class="${r && n <= r ? 'on' : ''}" ${r ? 'disabled' : ''} aria-label="${n} star${n > 1 ? 's' : ''}" onclick="rate(${tid},${uid},${n})">&#9733;</button>`).join('')}</span>`;
+async function refresh() {
+  const [skills, teams, trades] = await Promise.all([api('/api/skills'), api('/api/teams'), api('/api/trades/mine')]);
+  $('#pCredits').textContent = ME.credits.toFixed(2); $('#pTrust').textContent = ME.trust_score.toFixed(2); $('#pRank').textContent = '#' + ME.rank;
+  $('#offers').innerHTML = chips(ME.offers, 'offer', 'mint'); $('#wants').innerHTML = chips(ME.wants, 'want', 'amber');
+  for (const id of ['so', 'sw']) { const el = $('#' + id); if (el.dataset.n != skills.length) { el.innerHTML = skills.map(s => `<option value="${s.skill_id}">${esc(s.name)}</option>`).join(''); el.dataset.n = skills.length; } }
+  $('#trades').innerHTML = trades.map(t => `<div class="trade"><div class="muted small">Trade #${t.trade_id} &middot; ${t.loop_length}-way loop &middot; ${timeAgo(t.created_at)}</div>
+    ${t.partners.map(p => `<div class="tp"><span><b>${esc(p.name)}</b> <span class="muted small">${p.taught ? 'you taught ' + esc(p.taught) : ''}${p.taught && p.learned ? ', ' : ''}${p.learned ? 'they taught you ' + esc(p.learned) : ''}</span></span>${stars(t.trade_id, p.user_id, p.my_rating)}</div>`).join('')}</div>`).join('')
+    || '<div class="muted">No trades yet. Settle a loop and your partners show up here to rate.</div>';
+  $('#teams').innerHTML = teams.filter(t => t.my_status).map(teamCard).join('') || '<div class="empty">No teams yet. Find one on the <a href="/teams"><u>teams page</u></a>.</div>';
+}
+refresh();
+</script>{% endblock %}

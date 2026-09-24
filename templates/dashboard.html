@@ -1,0 +1,47 @@
+{% extends 'base.html' %}{% block title %}Home · SkillLoop{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="copy"><h1>Hi {{ me.name.split()[0] }}.</h1>
+    <p id="heroText">Looking for a loop...</p>
+    <div class="row" id="heroActions"></div></div>
+  <div id="heroRing"></div>
+</section>
+<section class="section"><div class="head"><h2>Skills you might want to learn</h2><a class="muted small" href="/marketplace">Browse all skills</a></div>
+  <div class="grid g3" id="skillRecs"></div></section>
+<section class="section"><div class="head"><h2>Hackathon teams that fit you</h2><a class="muted small" href="/teams">See all teams</a></div>
+  <div class="grid g2" id="teamRecs"></div></section>
+<section class="section"><div class="head"><h2>Happening on SkillLoop</h2></div>
+  <div class="card"><ul class="feed" id="feed"></ul></div></section>
+{% endblock %}
+{% block scripts %}<script>
+function hero(loops) {
+  const best = loops.filter(l => l.includes_me)[0], n = loops.filter(l => l.includes_me).length;
+  if (best) {
+    const give = best.legs.find(l => l.giver_id === ME.id), get = best.legs.find(l => l.receiver_id === ME.id);
+    $('#heroText').textContent = `You teach ${give.skill_name} to ${give.receiver_name}, and ${get.giver_name} teaches you ${get.skill_name}. ${best.length} people, and everyone gets what they asked for.`;
+    $('#heroActions').innerHTML = `<button class="btn mint" id="runBtn">Make this trade</button><a class="btn ghost" href="/loops">${n} loop${n > 1 ? 's' : ''} found</a>`;
+    ring($('#heroRing'), best.users);
+    $('#runBtn').onclick = async () => {
+      $('#runBtn').disabled = true;
+      try { const r = await api('/api/trade/execute', 'POST', { legs: best.legs });
+        settle($('#heroRing')); toast(`Trade #${r.trade_id} settled. Rate your partners on your profile.`); await syncMe();
+      } catch (e) { $('#runBtn').disabled = false; }
+    };
+  } else {
+    $('#heroText').textContent = !ME.offers.length && !ME.wants.length ? 'Add a skill you can teach and one you want to learn. As soon as other people\'s skills line up with yours, your loop shows up here.'
+      : ME.wants.length && ME.offers.length ? 'No loop closes for you yet. It will appear here on its own as soon as other members\' skills line up with yours.' : 'Add both a skill you can teach and one you want to learn so SkillLoop can match you.';
+    $('#heroActions').innerHTML = `<a class="btn" href="/marketplace">Add skills</a>`;
+    ring($('#heroRing'), [{ name: 'You' }, { name: 'Member' }, { name: 'Member' }]);
+  }
+}
+async function refresh() {
+  const [loops, rec, act] = await Promise.all([api('/api/loops'), api('/api/recommendations'), api('/api/activity')]);
+  hero(loops);
+  $('#skillRecs').innerHTML = rec.skills.map(s => `<div class="card skill-card"><span class="chip violet">${esc(s.category || 'General')}</span>
+    <h3 style="margin-top:12px">${esc(s.name)}</h3>${s.score ? `<div class="match"><div class="bar"><i style="width:${s.score}%"></i></div><b>${s.score}%</b></div>` : '<div style="height:12px"></div>'}
+    <button class="btn small ghost" onclick="addList('want',${s.id})">I want to learn this</button></div>`).join('') || '<div class="empty">Suggestions appear once there are skills to recommend.</div>';
+  $('#teamRecs').innerHTML = rec.teams.map(teamCard).join('') || '<div class="empty">No open teams to join right now. <a href="/teams"><u>Start one</u></a>.</div>';
+  $('#feed').innerHTML = act.map(a => `<li><span>${esc(a.text)}</span><time>${timeAgo(a.ts)}</time></li>`).join('') || '<li class="muted">Nothing yet. Activity shows up here the moment someone does something.</li>';
+}
+refresh();
+</script>{% endblock %}

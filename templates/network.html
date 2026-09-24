@@ -1,0 +1,28 @@
+{% extends 'base.html' %}{% block title %}Network · SkillLoop{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Who can teach whom</h1><p>Every arrow is a skill one member offers that another wants. Green arrows are the best loop you're part of. It redraws when members change.</p></div>
+  <div class="row"><span class="chip violet">You</span><span class="chip mint">Best loop</span></div></div>
+<div id="network"></div>
+{% endblock %}
+{% block scripts %}<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script><script>
+let net = null, nodesDS = null, edgesDS = null;
+async function refresh() {
+  if (typeof vis === 'undefined') { $('#network').innerHTML = '<div class="empty" style="margin:24px">The graph library couldn\'t load. Check your internet connection and reload.</div>'; return; }
+  const [g, loops] = await Promise.all([api('/api/graph'), api('/api/loops')]);
+  const best = loops.find(l => l.includes_me), hl = new Set(best ? best.legs.map(l => `${l.giver_id}-${l.receiver_id}-${l.skill_name}`) : []);
+  const nodes = g.nodes.map(n => ({ id: n.id, label: n.label, shape: 'dot', size: n.id === g.me ? 26 : 20,
+    color: { background: n.id === g.me ? '#8B7CFF' : '#1E2340', border: n.id === g.me ? '#B4A9FF' : '#4FE3B0' }, font: { color: '#ECEFFA', face: 'DM Sans', size: 15 } }));
+  const edges = g.edges.map((e, i) => { const on = hl.has(`${e.from}-${e.to}-${e.label}`);
+    return { id: i, from: e.from, to: e.to, label: e.label, arrows: 'to', smooth: { type: 'curvedCW', roundness: .2 }, width: on ? 4 : 1.2,
+      color: { color: on ? '#4FE3B0' : '#3A4270', highlight: '#8B7CFF' }, font: { color: '#8F97B8', size: 11, strokeWidth: 0, align: 'middle' } }; });
+  if (!net) {
+    nodesDS = new vis.DataSet(nodes); edgesDS = new vis.DataSet(edges);
+    net = new vis.Network($('#network'), { nodes: nodesDS, edges: edgesDS },
+      { physics: { stabilization: true, barnesHut: { springLength: 170, gravitationalConstant: -5000 } }, interaction: { hover: true } });
+  } else {
+    const keep = new Set(nodes.map(n => n.id)); nodesDS.remove(nodesDS.getIds().filter(id => !keep.has(id)));
+    nodesDS.update(nodes); edgesDS.clear(); edgesDS.add(edges);
+  }
+}
+refresh();
+</script>{% endblock %}
