@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}SkillLoop · EvoLoop{% endblock %}
+{% block content %}
+<section class="skillloop-intro"><span class="chip violet">SKILL EXCHANGE COMMUNITY</span><h1>SkillLoop workspace</h1><p>Choose a SkillLoop area to continue. Your account and existing features are shared across this workspace.</p></section>
+<section class="grid g3 skillloop-link-grid">
+  {% for href, icon, title, description in [('/dashboard','home','Dashboard','Your recommendations, activity, and current trade opportunities.'),('/network','graph','Network','Explore the community and its skill connections.'),('/trade-loops','loop','Trade loops','Find and manage multi-person skill exchanges.'),('/skills','market','Skills marketplace','Browse skills, offers, wants, and pricing.'),('/teams','team','Hackathon teams','Discover teams or organize one around your skills.'),('/leaderboard','trophy','Leaderboard','See community trust and contribution rankings.'),('/profile','user','Your profile','Manage your skills, trades, and account profile.'),('/evolution','loop','EvoLoop dashboard','Open the evidence and controlled repair dashboard.')] %}
+  <a class="card skillloop-link-card" href="{{ href }}"><span class="skillloop-link-icon"><svg class="ico"><use href="#i-{{ icon }}"/></svg></span><h2>{{ title }}</h2><p class="muted">{{ description }}</p><span class="skillloop-link-arrow">Open area <b>→</b></span></a>
+  {% endfor %}
+</section>
+{% endblock %}

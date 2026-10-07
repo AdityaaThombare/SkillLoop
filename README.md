@@ -1,4 +1,90 @@
-# SkillLoop
+# EvoLoop + SkillLoop
+
+EvoLoop is the flagship UI analysis experience. It accepts a screenshot, a public
+website URL, or a ZIP of UI source files and returns concise, evidence-grounded
+recommendations using a local Ollama Gemma model. SkillLoop remains available as
+the separate peer-to-peer skill exchange application.
+
+## Requirements
+
+- Python 3.11 or 3.12
+- Node.js 20 or newer and npm
+- Ollama with the exact model tag `gemma4-e4b:latest` installed for EvoLoop analysis
+
+## Run locally
+
+Open two PowerShell terminals from the repository root.
+
+Terminal 1, install and start the Evolution API:
+
+```powershell
+cd evolution-agent
+npm ci
+Copy-Item .env.example .env
+ollama pull gemma4-e4b:latest
+npm start
+```
+
+Keep Ollama running in the background. The model pull is needed only once.
+
+Terminal 2, set up and start Flask:
+
+```powershell
+py -3.11 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+if (-not (Test-Path skillloop.db)) { .\venv\Scripts\python.exe seed.py }
+.\venv\Scripts\python.exe app.py
+```
+
+Open <http://localhost:5050>. EvoLoop is the landing experience; SkillLoop is
+available from the top navigation. The Evolution API health check is
+<http://localhost:8001/health>.
+
+The app creates its local SQLite databases on startup. Do not commit the
+database files. To try SkillLoop with example accounts, run
+`python demo_data.py` after starting Flask; this is optional and modifies only
+your local `skillloop.db`.
+
+## Frontend development build
+
+The Flask app serves the checked-in bundle in `static/react-app/`. If you edit
+the React source, rebuild it with:
+
+```powershell
+cd frontend
+npm ci
+npm run build
+```
+
+Vite writes the production bundle to `static/react-app/`; include that bundle in
+the commit so Flask can serve the updated landing page without a separate
+frontend server.
+
+## Tests and checks
+
+```powershell
+cd evolution-agent
+npm ci
+npm run build
+npm test
+cd ..
+node --check static/evolution.js
+```
+
+For Python dependency checks, install `requirements.txt` in a Python 3.11 or
+3.12 virtual environment. Never upload `.env`, `.secret_key`, local databases,
+virtual environments, or model weights.
+
+## Configuration
+
+Evolution service defaults are documented in `evolution-agent/.env.example`.
+The service checks exact Ollama model tags; it does not silently substitute a
+different model. Flask can use `SKILLLOOP_SECRET` from the process environment;
+when unset, it creates a local `.secret_key` file, which is ignored by Git.
+
+---
+
+## SkillLoop
 
 A DBMS-driven peer-to-peer skill-barter platform. Students exchange skills using
 time-credits instead of money, and the database itself finds multi-party trade
@@ -11,17 +97,16 @@ network graph.
 
 ## Run it
 
-```bash
-cd skillloop
-pip install -r requirements.txt
-python seed.py        # creates skillloop.db (users, skills, loops, teams) and trains the recommender
-python app.py          # starts the server
+```powershell
+if (-not (Test-Path skillloop.db)) { .\venv\Scripts\python.exe seed.py }
+.\venv\Scripts\python.exe app.py
 ```
 
 Then open **http://localhost:5050** and click **Create account**. To see loops you need at least 3 members, so register a few
 accounts (use a private window for each) or run `python demo_data.py` for sample people.
-An existing `skillloop.db` from the old version is upgraded automatically on startup
-(old accounts get the demo password).
+On first run, initialize a fresh database with `seed.py` once. Do not run the
+seed script against an existing populated database. Existing databases are
+migrated in place on startup.
 
 
 ## What's new

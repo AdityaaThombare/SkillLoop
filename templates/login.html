@@ -1,15 +1,16 @@
-<!DOCTYPE html><html lang="en"><head><title>Sign in · SkillLoop</title>{% include '_head.html' %}</head>
-<body><div class="auth">
+{% set is_evoloop = product == 'evoloop' %}
+<!DOCTYPE html><html lang="en"><head><title>Sign in · {{ 'EvoLoop' if is_evoloop else 'SkillLoop' }}</title>{% include '_head.html' %}</head>
+<body><header class="product-header auth-product-header"><a class="brand" href="/"><svg class="mark" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="url(#lg)" stroke-width="4" stroke-dasharray="52 17" stroke-linecap="round"/></svg>EvoLoop</a><nav class="product-tabs" aria-label="Product navigation"><a href="/evoloop/login" class="{{ 'on' if is_evoloop }}">EvoLoop</a><a href="/login" class="{{ 'on' if not is_evoloop }}">SkillLoop</a></nav><div class="product-account"><a class="btn ghost small" href="/">Back to home</a></div></header><div class="auth">
 <section class="art">
-  <div class="brand" style="padding:0"><svg class="mark" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="url(#lg)" stroke-width="4" stroke-dasharray="52 17" stroke-linecap="round"/></svg>SkillLoop</div>
-  <h1>Trade skills in a circle, not a line.</h1>
-  <p class="muted" style="max-width:44ch">You teach Python, someone teaches guitar, another reviews resumes. SkillLoop finds the loop where everyone gets what they want, and helps you build a hackathon team while you're at it.</p>
+  <a href="/" class="brand" style="padding:0"><svg class="mark" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="url(#lg)" stroke-width="4" stroke-dasharray="52 17" stroke-linecap="round"/></svg>{{ 'EvoLoop' if is_evoloop else 'SkillLoop' }}</a>
+  <h1>{{ 'A smarter way to evolve the experience.' if is_evoloop else 'Trade skills in a circle, not a line.' }}</h1>
+  <p class="muted" style="max-width:44ch">{% if is_evoloop %}Sign in to access the EvoLoop evolution workspace and its controlled repair tools.{% else %}You teach Python, someone teaches guitar, another reviews resumes. SkillLoop finds the loop where everyone gets what they want, and helps you build a hackathon team while you're at it.{% endif %}</p>
   <div class="stats" id="stats" aria-live="polite"></div>
   <div id="demoRing" style="max-width:260px;margin-top:28px"></div>
 </section>
 <section class="form"><div class="card">
   <div class="tabs" role="tablist"><button class="on" id="tabIn">Sign in</button><button id="tabUp">Create account</button></div>
-  <form id="form" novalidate>
+  <form id="form" data-product="{{ 'evoloop' if is_evoloop else 'skillloop' }}" novalidate>
     <div id="nameRow" hidden><label for="name">Your name</label><input id="name" autocomplete="name" placeholder="Priya Sharma"></div>
     <label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="you@vit.edu">
     <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="At least 6 characters">
@@ -33,7 +34,7 @@ $('#form').onsubmit = async e => {
   e.preventDefault(); $('#err').textContent = '';
   const body = { email: $('#email').value, password: $('#pw').value };
   if (mode === 'up') body.name = $('#name').value;
-  try { await api(mode === 'in' ? '/api/login' : '/api/register', 'POST', body); location.href = '/'; }
+  try { await api(mode === 'in' ? '/api/login' : '/api/register', 'POST', body); location.href = $('#form').dataset.product === 'evoloop' ? '/evolution' : '/skillloop'; }
   catch (err) { $('#err').textContent = err.message; if (err.data && err.data.code === 'no_account') setMode('up'), $('#err').textContent = err.message; }
 };
 </script></body></html>

@@ -1,0 +1,11 @@
+import { Browser, BrowserContext, Page, chromium } from 'playwright';
+export class BrowserManager {
+  private browser: Browser | null = null; private context: BrowserContext | null = null;
+  private readonly timeoutMs: number; private readonly headless: boolean; private readonly baseUrl: string;
+  constructor(options: { baseUrl?: string; headless?: boolean; timeoutMs?: number } = {}) { this.baseUrl = (options.baseUrl || process.env.EVOLUTION_TARGET_URL || 'http://127.0.0.1:5050').replace(/\/$/, ''); const url = new URL(this.baseUrl); if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '::1', '[::1]'].includes(url.hostname)) throw new Error('Observation target base URL must use local loopback HTTP'); this.headless = options.headless ?? process.env.PLAYWRIGHT_HEADLESS !== 'false'; this.timeoutMs = options.timeoutMs ?? Number(process.env.PLAYWRIGHT_TIMEOUT_MS || 10000); }
+  async launch(): Promise<void> { if (!this.browser) this.browser = await chromium.launch({ headless: this.headless, timeout: this.timeoutMs, channel: process.env.PLAYWRIGHT_CHANNEL || undefined }); if (!this.context) { this.context = await this.browser.newContext(); const allowedOrigin = new URL(this.baseUrl).origin; await this.context.route('**/*', async (route) => { try { if (new URL(route.request().url()).origin === allowedOrigin) await route.continue(); else await route.abort('blockedbyclient'); } catch { await route.abort('blockedbyclient').catch(() => undefined); } }); } this.context.setDefaultTimeout(this.timeoutMs); }
+  async createPage(): Promise<Page> { await this.launch(); return this.context!.newPage(); }
+  url(route: string): string { if (!route.startsWith('/') || route.startsWith('//') || route.includes('\\')) throw new Error('Observation routes must be fixed relative paths'); return `${this.baseUrl}${route}`; }
+  async navigate(page: Page, route: string): Promise<number> { const response = await page.goto(this.url(route), { waitUntil: 'domcontentloaded', timeout: this.timeoutMs }); if (!response) throw new Error('Target page did not return a navigation response'); if (response.status() >= 500) throw new Error(`Target page returned HTTP ${response.status()}`); return response.status(); }
+  async close(): Promise<void> { await this.context?.close(); await this.browser?.close(); this.context = null; this.browser = null; }
+}

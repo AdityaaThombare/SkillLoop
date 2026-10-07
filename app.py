@@ -3,7 +3,7 @@ import re
 import secrets
 import sqlite3
 import numpy as np
-from flask import Flask, g, jsonify, request, render_template, session, redirect, url_for
+from flask import Flask, g, jsonify, request, render_template, session, redirect, url_for, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import recommender
@@ -71,7 +71,7 @@ def migrate():
 
 # ---------- Auth ----------
 
-PUBLIC_ENDPOINTS = {"login_page", "api_login", "api_register", "api_public_stats", "static"}
+PUBLIC_ENDPOINTS = {"landing_page", "login_page", "evoloop_login_page", "api_login", "api_register", "api_public_stats", "static"}
 
 
 @app.before_request
@@ -85,6 +85,8 @@ def require_login():
         session.clear()
     if request.path.startswith("/api/"):
         return jsonify({"error": "Please sign in first"}), 401
+    if request.path.startswith("/evolution"):
+        return redirect(url_for("evoloop_login_page"))
     return redirect(url_for("login_page"))
 
 
@@ -110,8 +112,15 @@ def me_payload(db, uid):
 @app.route("/login")
 def login_page():
     if session.get("user_id"):
-        return redirect(url_for("dashboard"))
-    return render_template("login.html")
+        return redirect(url_for("skillloop_home"))
+    return render_template("login.html", product="skillloop")
+
+
+@app.route("/evoloop/login")
+def evoloop_login_page():
+    if session.get("user_id"):
+        return redirect(url_for("evolution_page"))
+    return render_template("login.html", product="evoloop")
 
 
 @app.route("/api/register", methods=["POST"])
@@ -175,11 +184,30 @@ def api_me():
 # ---------- Pages ----------
 
 def _page(template, active):
+    if request.args.get("embedded") != "1":
+        built_ui = os.path.join(BASE, "static", "react-app")
+        if os.path.isfile(os.path.join(built_ui, "index.html")):
+            return send_from_directory(built_ui, "index.html")
     db = get_db()
-    return render_template(template, me=me_payload(db, current_user_id()), active=active)
+    return render_template(template, me=me_payload(db, current_user_id()), active=active, embedded=request.args.get("embedded") == "1")
 
 
 @app.route("/")
+def landing_page():
+    built_ui = os.path.join(BASE, "static", "react-app")
+    if os.path.isfile(os.path.join(built_ui, "index.html")):
+        return send_from_directory(built_ui, "index.html")
+    return render_template("landing.html")
+
+
+@app.route("/skillloop")
+def skillloop_home():
+    if not session.get("user_id"):
+        return redirect(url_for("login_page"))
+    return _page("skillloop.html", "skillloop")
+
+
+@app.route("/dashboard")
 def dashboard():
     return _page("dashboard.html", "dashboard")
 
@@ -190,11 +218,13 @@ def network_page():
 
 
 @app.route("/loops")
+@app.route("/trade-loops")
 def loops_page():
     return _page("loops.html", "loops")
 
 
 @app.route("/marketplace")
+@app.route("/skills")
 def marketplace_page():
     return _page("marketplace.html", "marketplace")
 
@@ -212,6 +242,19 @@ def teams_page():
 @app.route("/profile")
 def profile_page():
     return _page("profile.html", "profile")
+
+@app.route("/evolution", defaults={"section": "overview"})
+@app.route("/evolution/<section>")
+def evolution_page(section):
+    # Path aliases only: all views use the same Phase 1–3 service and page.
+    if section not in {"overview", "observe", "repairs", "history"}:
+        return "Not found", 404
+    if request.args.get("embedded") != "1":
+        built_ui = os.path.join(BASE, "static", "react-app")
+        if os.path.isfile(os.path.join(built_ui, "index.html")):
+            return send_from_directory(built_ui, "index.html")
+    db = get_db()
+    return render_template("evolution.html", me=me_payload(db, current_user_id()), active="evolution", evolution_section=section, embedded=request.args.get("embedded") == "1")
 
 
 # ---------- Users ----------

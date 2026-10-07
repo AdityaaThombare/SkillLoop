@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}EvoLoop · Evolution dashboard{% endblock %}
+{% block content %}
+<header class="page-head evolution-head">
+  <div><span class="chip violet">CONTROLLED REPAIR</span><h1>Evolution Dashboard</h1><p>Inspect registered SkillLoop targets, review evidence, and run risk-gated repairs with exact verification.</p></div>
+  <div class="evolution-service card" aria-live="polite"><span class="service-indicator" id="serviceIndicator"></span><div><b id="serviceLabel">Checking service…</b><div class="muted small" id="serviceDetail">Evolution service status</div></div><button class="btn ghost small" id="checkService">Check</button></div>
+</header>
+
+<section class="card evolution-controls" id="observeSection" aria-labelledby="observeHeading">
+  <div class="evolution-section-title"><div><span class="evolution-step">01</span><div><h2 id="observeHeading">Observe a registered target</h2><p class="muted">Choose a known target to collect focused page evidence.</p></div></div><span class="chip violet">OBSERVE</span></div>
+  <div class="evolution-control-row"><div class="evolution-target"><label for="targetSelect">Target</label><select id="targetSelect"><option value="botFab">Assistant button</option><option value="evolutionPage">Evolution sample button (read only)</option></select></div><div class="row evolution-actions"><button class="btn" id="observeTarget">Observe</button><button class="btn mint" id="repairTarget">Run Phase 1–3 repair</button><button class="btn" id="phase4Repair">Run calibrated repair</button><button class="btn ghost" id="runDecision">Run sample decision</button></div></div>
+  <p class="muted small evolution-hint">Repairs are limited to registered targets and policy-allowed actions.</p>
+</section>
+
+<section class="section evolution-section" id="calibrationSection" aria-labelledby="calibrationHeading">
+  <div class="head"><div><h2 id="calibrationHeading">Phase 4 · Calibration</h2><p class="muted small">Fit temperature scaling from separately labeled calibration samples; evaluate only on held-out validation/test samples.</p></div><button class="btn ghost small" id="refreshCalibration">Refresh</button></div>
+  <div class="evolution-result-grid"><article class="card evolution-panel" id="calibrationStatus" aria-live="polite"><div class="empty">Loading calibration status…</div></article>
+    <article class="card evolution-panel"><h3>Label a real decision</h3><label for="labelDecisionId">Phase 4 decision ID</label><input id="labelDecisionId" type="text" placeholder="Populated after a Phase 4 run"><label for="actualClass">Ground-truth candidate index</label><input id="actualClass" type="number" min="0" step="1"><label for="dataSplit">Data split</label><select id="dataSplit"><option value="calibration">Calibration (fit)</option><option value="validation">Validation (evaluate)</option><option value="test">Test (evaluate)</option></select><div class="row"><button class="btn ghost" id="saveLabel">Save label</button><button class="btn" id="fitCalibration">Fit calibration</button></div><p class="muted small" id="calibrationMessage" aria-live="polite">Labels must come from observed outcomes; one decision can belong to only one split.</p></article></div>
+</section>
+
+<section class="section evolution-section" id="riskCoverageSection" aria-labelledby="riskCoverageHeading">
+  <div class="head"><div><h2 id="riskCoverageHeading">Risk / coverage</h2><p class="muted small">Metrics use only labeled Phase 4 decisions with calibrated confidence.</p></div><button class="btn ghost small" id="refreshRiskCoverage">Refresh</button></div>
+  <div class="card evolution-history" id="riskCoverage" aria-live="polite"><div class="empty">Loading measured risk/coverage data…</div></div>
+</section>
+
+<section class="section evolution-section" id="applicationAnalysisSection" aria-labelledby="applicationAnalysisHeading">
+  <div class="head"><div><h2 id="applicationAnalysisHeading">Analyze an application</h2><p class="muted small">Inspect a screenshot, public webpage, or source ZIP. Uploaded code is read as text and never executed.</p></div></div>
+  <div class="application-input-grid">
+    <article class="card evolution-panel"><h3>Screenshot</h3><label for="analysisScreenshot">PNG, JPEG, or WebP · up to 10 MB</label><input id="analysisScreenshot" type="file" accept="image/png,image/jpeg,image/webp"><button class="btn" id="analyzeScreenshot">Analyze screenshot</button></article>
+    <article class="card evolution-panel"><h3>Public webpage</h3><label for="analysisUrl">HTTP or HTTPS URL</label><input id="analysisUrl" type="url" placeholder="https://example.com"><button class="btn" id="analyzeUrl">Inspect and analyze URL</button></article>
+    <article class="card evolution-panel"><h3>Project ZIP</h3><label for="analysisZip">ZIP archive · up to 25 MB</label><input id="analysisZip" type="file" accept=".zip,application/zip"><button class="btn" id="analyzeZip">Inspect and analyze ZIP</button></article>
+  </div>
+  <div id="applicationAnalysis" class="card evolution-history" aria-live="polite"><div class="empty">Choose an input type to create an evidence-based application analysis.</div></div>
+</section>
+
+<section class="section evolution-section" id="recommendationsSection" aria-labelledby="recommendationsHeading">
+  <div class="head"><div><h2 id="recommendationsHeading">Application evolution</h2><p class="muted small">Evidence-grounded recommendations move through approval, patch, verification, and rollback.</p></div><button class="btn ghost small" id="refreshRecommendations">Refresh</button></div>
+  <div class="evolution-control-row"><div class="evolution-target"><label for="recommendationCategory">Category</label><select id="recommendationCategory"><option value="">All categories</option><option value="QUICK_WIN">Quick Wins</option><option value="UX_IMPROVEMENT">UX Improvements</option><option value="FEATURE_OPPORTUNITY">Feature Opportunities</option></select></div><button class="btn" id="analyzeTarget">Analyze observed target</button></div>
+  <div class="card evolution-history" id="recommendations" aria-live="polite"><div class="empty">No recommendations recorded yet.</div></div>
+  <div class="card evolution-history" id="patches" aria-live="polite"><div class="empty">No controlled patches recorded yet.</div></div>
+</section>
+
+<section class="section evolution-section" aria-labelledby="resultHeading">
+  <div class="head"><div><h2 id="resultHeading">Latest run</h2><p class="muted small">Evidence and pipeline stages from the latest request.</p></div><span id="runStatus" class="status-badge status-idle" hidden></span></div>
+  <div id="evolutionResult" class="evolution-result"><div class="empty">Choose Observe, Run repair, or Run sample decision to see results here.</div></div>
+</section>
+
+<section class="section evolution-section" id="repairsSection" aria-labelledby="repairsHeading">
+  <div class="head"><div><h2 id="repairsHeading">Repair history</h2><p class="muted small">Recorded repair attempts from the Evolution service.</p></div><button class="btn ghost small" id="refreshRepairs">Refresh</button></div>
+  <div class="card evolution-history" id="repairs" aria-live="polite"><div class="empty">Loading repair history…</div></div>
+</section>
+<section class="section evolution-section" id="historySection" aria-labelledby="decisionsHeading">
+  <div class="head"><div><h2 id="decisionsHeading">Decision history</h2><p class="muted small">Validated typed decisions recorded by the service.</p></div><button class="btn ghost small" id="refreshHistory">Refresh</button></div>
+  <div class="card evolution-history" id="history" aria-live="polite"><div class="empty">Loading decision history…</div></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='evolution.js') }}"></script>{% endblock %}
